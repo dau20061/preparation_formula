@@ -1,21 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Cookies from 'js-cookie'; // Import thư viện Cookie
 import './App.css';
-import logoImg from './logo.png';
 
 const FIREBASE_BASE_URL = "https://preparation-formula-default-rtdb.asia-southeast1.firebasedatabase.app";
+const COOKIE_USER_KEY = "casa_auth_cookie"; // Tên Cookie
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [isRegister, setIsRegister] = useState(false);
-  
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('app_theme') || 'dark';
+  // 1. TỰ ĐỘNG ĐỌC COOKIE KHI MỞ TRANG WEB
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const cookieData = Cookies.get(COOKIE_USER_KEY);
+      return cookieData ? JSON.parse(cookieData) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
+  const [isRegister, setIsRegister] = useState(false);
+  
+  // Theme Dark Mode
+  const [theme, setTheme] = useState(() => {
+    return Cookies.get('casa_theme') || 'dark';
+  });
+
+  // Form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
 
+  // Data state
   const [recipes, setRecipes] = useState([]);
   const [categories, setCategories] = useState(['Tất cả']);
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
@@ -23,18 +36,33 @@ export default function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [videoModalUrl, setVideoModalUrl] = useState(null);
 
+  // Áp dụng theme và lưu vào Cookie (365 ngày)
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('app_theme', theme);
+    Cookies.set('casa_theme', theme, { expires: 365 });
   }, [theme]);
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // ĐỒNG BỘ DỮ LIỆU & QUYỀN MỚI NHẤT TỪ FIREBASE
   const loadData = useCallback(async () => {
     if (!currentUser) return;
     try {
+      // Cập nhật lại danh sách quyền món mới nhất từ Firebase vào Cookie
+      let currentAllowed = currentUser.allowedRecipes || [];
+      try {
+        const userRes = await fetch(`${FIREBASE_BASE_URL}/users/${currentUser.id}.json`);
+        const userData = await userRes.json();
+        if (userData && userData.allowedRecipes) {
+          currentAllowed = userData.allowedRecipes;
+          const updatedUser = { ...currentUser, ...userData };
+          Cookies.set(COOKIE_USER_KEY, JSON.stringify(updatedUser), { expires: 30 }); // Gia hạn cookie 30 ngày
+        }
+      } catch (e) {}
+
+      // Tải tất cả công thức
       const res = await fetch(`${FIREBASE_BASE_URL}/recipes.json`);
       const data = await res.json();
       
@@ -43,12 +71,17 @@ export default function App() {
         allRecipes = Object.keys(data).map(k => ({ id: k, ...data[k] }));
       }
 
-      const allowedList = currentUser.allowedRecipes || [];
-      const userAccessibleRecipes = allRecipes.filter(r => allowedList.includes(r.id));
+      // Lọc các món được Admin cấp phép
+      const userAccessibleRecipes = allRecipes.filter(r => currentAllowed.includes(r.id));
       
       setRecipes(userAccessibleRecipes);
       if (userAccessibleRecipes.length > 0) {
-        setSelectedRecipe(userAccessibleRecipes[0]);
+        setSelectedRecipe(prev => {
+          if (prev && userAccessibleRecipes.some(r => r.id === prev.id)) {
+            return prev;
+          }
+          return userAccessibleRecipes[0];
+        });
       } else {
         setSelectedRecipe(null);
       }
@@ -56,7 +89,7 @@ export default function App() {
       const cats = ['Tất cả', ...new Set(userAccessibleRecipes.map(r => r.category || 'Chung'))];
       setCategories(cats);
     } catch (err) {
-      alert("Lỗi tải dữ liệu: " + err.message);
+      console.error("Lỗi tải dữ liệu:", err);
     }
   }, [currentUser]);
 
@@ -64,6 +97,7 @@ export default function App() {
     loadData();
   }, [loadData]);
 
+  // XỬ LÝ ĐĂNG NHẬP (TẠO COOKIE 30 NGÀY)
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!username || !password) return alert("Vui lòng nhập đầy đủ thông tin!");
@@ -87,12 +121,23 @@ export default function App() {
         return alert("Tài khoản đang chờ Admin trên Python phê duyệt!");
       }
 
+      // LƯU COOKIE VỚI THỜI HẠN 30 NGÀY
+      Cookies.set(COOKIE_USER_KEY, JSON.stringify(user), { expires: 30 });
       setCurrentUser(user);
     } catch (err) {
       alert("Lỗi: " + err.message);
     }
   };
 
+  // XỬ LÝ ĐĂNG XUẤT (XÓA COOKIE)
+  const handleLogout = () => {
+    Cookies.remove(COOKIE_USER_KEY);
+    setCurrentUser(null);
+    setRecipes([]);
+    setSelectedRecipe(null);
+  };
+
+  // XỬ LÝ ĐĂNG KÝ
   const handleRegister = async (e) => {
     e.preventDefault();
     if (!username || !password || !fullName) return alert("Vui lòng nhập đầy đủ!");
@@ -128,12 +173,14 @@ export default function App() {
     }
   };
 
+  // NẾU CHƯA ĐĂNG NHẬP
   if (!currentUser) {
     return (
       <div className="auth-container">
         <div className="auth-card">
           <div style={{ textAlign: 'center', marginBottom: 20 }}>
-            <img src={logoImg} alt="Casa Tea & Food" style={{ height: 60, objectFit: 'contain' }} />
+            <h1 style={{ color: '#245343', fontWeight: 900, fontSize: 32 }}>Casa</h1>
+            <p style={{ color: '#245343', fontWeight: 700, fontSize: 13, letterSpacing: 2 }}>TEA & FOOD</p>
           </div>
           <h2>Culinary Handbook</h2>
           <p>{isRegister ? "Đăng ký tài khoản để xem công thức pha chế" : "Đăng nhập vào sổ tay công thức của bạn"}</p>
@@ -197,9 +244,13 @@ export default function App() {
 
   return (
     <div>
+      {/* NAVBAR */}
       <div className="navbar">
         <div className="nav-brand">
-          <img src={logoImg} alt="Casa Tea & Food" className="brand-logo-img" />
+          <div className="brand-logo-box">
+            <span className="brand-logo-title">Casa</span>
+            <span className="brand-logo-sub">TEA & FOOD</span>
+          </div>
           <span className="brand-text">Sổ Tay Casa</span>
         </div>
 
@@ -213,13 +264,15 @@ export default function App() {
             <div className="user-role">Được cấp quyền: {recipes.length} món</div>
           </div>
 
-          <button className="btn-logout" onClick={() => setCurrentUser(null)}>
+          <button className="btn-logout" onClick={handleLogout}>
             Đăng xuất
           </button>
         </div>
       </div>
 
+      {/* MAIN WRAPPER */}
       <div className="main-wrapper">
+        {/* CỘT TRÁI */}
         <div className="left-column">
           <div className="search-input-box">
             <span>🔍</span>
@@ -283,6 +336,7 @@ export default function App() {
           )}
         </div>
 
+        {/* CỘT PHẢI */}
         <div className="right-column">
           {selectedRecipe ? (
             <div className="detail-container">
@@ -363,6 +417,7 @@ export default function App() {
         </div>
       </div>
 
+      {/* MODAL PHÁT VIDEO */}
       {videoModalUrl && (
         <div className="video-modal-overlay">
           <div className="video-modal-content">
