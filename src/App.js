@@ -1,25 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import logoImg from './logo.png';
 
-// Link Firebase Realtime Database
 const FIREBASE_BASE_URL = "https://preparation-formula-default-rtdb.asia-southeast1.firebasedatabase.app";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isRegister, setIsRegister] = useState(false);
   
-  // TỰ ĐỘNG BẬT CHẾ ĐỘ DARK MODE MẶC ĐỊNH
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('app_theme') || 'dark';
   });
 
-  // Form Đăng nhập / Đăng ký
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
 
-  // Data
   const [recipes, setRecipes] = useState([]);
   const [categories, setCategories] = useState(['Tất cả']);
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
@@ -27,7 +23,6 @@ export default function App() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [videoModalUrl, setVideoModalUrl] = useState(null);
 
-  // Lưu và áp dụng theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('app_theme', theme);
@@ -37,15 +32,8 @@ export default function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // SỬA ĐOẠN NÀY:
-  useEffect(() => {
-    if (currentUser) {
-      loadData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!currentUser) return;
     try {
       const res = await fetch(`${FIREBASE_BASE_URL}/recipes.json`);
       const data = await res.json();
@@ -55,7 +43,6 @@ export default function App() {
         allRecipes = Object.keys(data).map(k => ({ id: k, ...data[k] }));
       }
 
-      // LỌC CHỈ LẤY NHỮNG MÓN ĐƯỢC ADMIN CẤP PHÉP TRÊN ỨNG DỤNG PYTHON
       const allowedList = currentUser.allowedRecipes || [];
       const userAccessibleRecipes = allRecipes.filter(r => allowedList.includes(r.id));
       
@@ -71,7 +58,11 @@ export default function App() {
     } catch (err) {
       alert("Lỗi tải dữ liệu: " + err.message);
     }
-  };
+  }, [currentUser]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -120,7 +111,7 @@ export default function App() {
         password,
         fullName,
         status: "approved",
-        allowedRecipes: [], // Mặc định 0 món, chờ admin phân quyền
+        allowedRecipes: [],
         createdAt: Date.now()
       };
 
@@ -137,7 +128,6 @@ export default function App() {
     }
   };
 
-  // MÀN HÌNH ĐĂNG NHẬP / ĐĂNG KÝ
   if (!currentUser) {
     return (
       <div className="auth-container">
@@ -207,16 +197,13 @@ export default function App() {
 
   return (
     <div>
-      {/* NAVBAR */}
       <div className="navbar">
-        {/* LOGO CASA TEA & FOOD */}
         <div className="nav-brand">
           <img src={logoImg} alt="Casa Tea & Food" className="brand-logo-img" />
           <span className="brand-text">Sổ Tay Casa</span>
         </div>
 
         <div className="header-actions">
-          {/* NÚT CHUYỂN ĐỔI CHẾ ĐỘ SÁNG / TỐI */}
           <button className="theme-toggle-btn" onClick={toggleTheme}>
             {theme === 'dark' ? '☀️ Chế độ sáng' : '🌙 Chế độ tối'}
           </button>
@@ -232,9 +219,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* GIAO DIỆN 2 CỘT */}
       <div className="main-wrapper">
-        {/* ================= CỘT TRÁI ================= */}
         <div className="left-column">
           <div className="search-input-box">
             <span>🔍</span>
@@ -298,11 +283,9 @@ export default function App() {
           )}
         </div>
 
-        {/* ================= CỘT PHẢI ================= */}
         <div className="right-column">
           {selectedRecipe ? (
             <div className="detail-container">
-              {/* KHUNG CĂN GIỮA FULL HÌNH ẢNH LY TRÀ SỮA (OBJECT-FIT: CONTAIN) */}
               {selectedRecipe.imageUrl && (
                 <div className="detail-hero-wrapper">
                   <img
@@ -313,7 +296,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Tiêu đề & Metadata */}
               <div className="detail-header">
                 <h1 className="detail-title">{selectedRecipe.title}</h1>
                 <div className="detail-meta-info">
@@ -325,7 +307,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Nút Xem Video Clip */}
               {selectedRecipe.videoUrl && (
                 <button
                   className="btn-watch-video"
@@ -340,7 +321,6 @@ export default function App() {
                 </button>
               )}
 
-              {/* 2 KHUNG THÔNG TIN SONG SONG */}
               <div className="cards-row">
                 <div className="info-card">
                   <h4>
@@ -383,7 +363,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* MODAL PHÁT VIDEO */}
       {videoModalUrl && (
         <div className="video-modal-overlay">
           <div className="video-modal-content">
