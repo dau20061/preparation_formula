@@ -37,10 +37,12 @@ export default function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // SỬA ĐOẠN NÀY:
   useEffect(() => {
     if (currentUser) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   const loadData = async () => {
