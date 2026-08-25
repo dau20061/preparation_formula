@@ -3,15 +3,6 @@ import './AdminDashboard.css';
 
 const FIREBASE_BASE_URL = "https://preparation-formula-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-// Hàm hỗ trợ render đúng link ảnh Base64 hoặc URL trực tiếp
-const getFullImageUrl = (imgStr) => {
-  if (!imgStr) return '';
-  if (imgStr.startsWith('data:') || imgStr.startsWith('http://') || imgStr.startsWith('https://')) {
-    return imgStr;
-  }
-  return `data:image/jpeg;base64,${imgStr}`;
-};
-
 export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
   const [activeTab, setActiveTab] = useState('recipes'); // 'recipes' | 'users'
   const [recipes, setRecipes] = useState([]);
@@ -247,7 +238,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
 
   return (
     <div className="admin-container">
-      {/* HEADER */}
       <header className="admin-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="brand-logo-box">
@@ -269,7 +259,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
         </div>
       </header>
 
-      {/* TABS */}
       <div className="admin-nav-tabs">
         <button
           className={`admin-tab-btn ${activeTab === 'recipes' ? 'active' : ''}`}
@@ -286,7 +275,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
       </div>
 
       <main className="admin-main-body">
-        {/* ================= TAB 1: RECIPES ================= */}
         {activeTab === 'recipes' && (
           <div className="admin-card-box">
             <div className="admin-top-action">
@@ -312,16 +300,8 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
                 {recipes.map(r => (
                   <tr key={r.id}>
                     <td>
-                      <div className="thumb-box" style={{ width: 50, height: 50, borderRadius: 10, overflow: 'hidden' }}>
-                        {r.imageUrl ? (
-                          <img 
-                            src={getFullImageUrl(r.imageUrl)} 
-                            alt={r.title} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                          />
-                        ) : (
-                          <span style={{ fontSize: 20 }}>🫖</span>
-                        )}
+                      <div className="thumb-box" style={{ width: 44, height: 44 }}>
+                        {r.imageUrl ? <img src={r.imageUrl} alt="" /> : '🫖'}
                       </div>
                     </td>
                     <td><b>{r.teaCode || '-'}</b></td>
@@ -340,7 +320,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
           </div>
         )}
 
-        {/* ================= TAB 2: USERS ================= */}
         {activeTab === 'users' && (
           <div className="admin-card-box">
             <div className="admin-top-action">
@@ -384,7 +363,7 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
         )}
       </main>
 
-      {/* ================= MODAL CÔNG THỨC ================= */}
+      {/* MODAL CÔNG THỨC */}
       {showRecipeModal && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-content">
@@ -415,7 +394,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
                 </select>
               </div>
 
-              {/* Nguyên liệu */}
               <div style={{ margin: '16px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ fontWeight: 700, fontSize: 13 }}>Nguyên liệu chuẩn bị:</label>
@@ -435,7 +413,6 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
                 ))}
               </div>
 
-              {/* Các bước */}
               <div style={{ margin: '16px 0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ fontWeight: 700, fontSize: 13 }}>Các bước thực hiện:</label>
@@ -455,21 +432,14 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
                 ))}
               </div>
 
-              {/* Upload ảnh & video + Preview ảnh */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '14px 0' }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700 }}>Ảnh món:</label>
                   <input type="file" accept="image/*" onChange={e => handleFileChange(e, 'image')} style={{ marginTop: 4, fontSize: 12 }} />
-                  {imageUrl && (
-                    <div style={{ marginTop: 8, width: 80, height: 80, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
-                      <img src={getFullImageUrl(imageUrl)} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  )}
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700 }}>Clip Video:</label>
                   <input type="file" accept="video/*" onChange={e => handleFileChange(e, 'video')} style={{ marginTop: 4, fontSize: 12 }} />
-                  {videoUrl && <p style={{ fontSize: 11, color: 'var(--primary-green)', marginTop: 6 }}>✓ Đã chọn video</p>}
                 </div>
               </div>
 
@@ -482,7 +452,7 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
         </div>
       )}
 
-      {/* ================= MODAL USER ================= */}
+      {/* MODAL USER */}
       {showUserModal && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-content" style={{ maxWidth: 420 }}>
@@ -509,7 +479,7 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
         </div>
       )}
 
-      {/* ================= MODAL PHÂN QUYỀN ================= */}
+      {/* MODAL PHÂN QUYỀN */}
       {showPermModal && permUser && (
         <div className="admin-modal-overlay">
           <div className="admin-modal-content">
@@ -519,24 +489,21 @@ export default function AdminDashboard({ onLogout, toggleTheme, theme }) {
             </p>
 
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              <button type="button" onClick={() => setSelectedAllowedIds(recipes.map(r => r.id))} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>Chọn tất cả</button>
-              <button type="button" onClick={() => setSelectedAllowedIds([])} style={{ padding: '4px 10px', borderRadius: 8, cursor: 'pointer' }}>Bỏ chọn hết</button>
+              <button type="button" onClick={() => setSelectedAllowedIds(recipes.map(r => r.id))} style={{ padding: '4px 10px', borderRadius: 8 }}>Chọn tất cả</button>
+              <button type="button" onClick={() => setSelectedAllowedIds([])} style={{ padding: '4px 10px', borderRadius: 8 }}>Bỏ chọn hết</button>
             </div>
 
             <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 12, padding: 12 }}>
               {recipes.map(r => {
                 const isChecked = selectedAllowedIds.includes(r.id);
                 return (
-                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
+                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => handleTogglePermRecipe(r.id)}
                       style={{ width: 18, height: 18 }}
                     />
-                    <div style={{ width: 34, height: 34, borderRadius: 6, overflow: 'hidden', background: 'var(--bg-inner-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {r.imageUrl ? <img src={getFullImageUrl(r.imageUrl)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '🫖'}
-                    </div>
                     <span><b>{r.title}</b> ({r.category} - #{r.teaCode})</span>
                   </label>
                 );
